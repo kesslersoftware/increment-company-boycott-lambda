@@ -34,16 +34,23 @@ public class IncrementCompanyBoycottHandlerTest {
 
     @Test
     public void testSuccessfulIncrement() throws Exception {
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        Map<String, String> claims = Map.of("sub", "11111111-2222-3333-4444-555555555555");
+        Map<String, Object> authorizer = new HashMap<>();
+        authorizer.put("claims", claims);
+
+        APIGatewayProxyRequestEvent.ProxyRequestContext rc = new APIGatewayProxyRequestEvent.ProxyRequestContext();
+        rc.setAuthorizer(authorizer);
+        event.setRequestContext(rc);
         Map<String, String> pathParams = new HashMap<>();
         pathParams.put("company_id", "test-company");
         pathParams.put("increment", "true");
-        request.setPathParameters(pathParams);
+        event.setPathParameters(pathParams);
 
         when(dynamoDbClient.updateItem(any(UpdateItemRequest.class)))
                 .thenReturn(UpdateItemResponse.builder().build());
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         assertEquals(200, response.getStatusCode());
         assertTrue(response.getBody().contains("company record updated = true"));
@@ -51,10 +58,17 @@ public class IncrementCompanyBoycottHandlerTest {
 
     @Test
     public void testMissingCompanyId() {
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
-        request.setPathParameters(new HashMap<>()); // No company_id
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        Map<String, String> claims = Map.of("sub", "11111111-2222-3333-4444-555555555555");
+        Map<String, Object> authorizer = new HashMap<>();
+        authorizer.put("claims", claims);
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
+        APIGatewayProxyRequestEvent.ProxyRequestContext rc = new APIGatewayProxyRequestEvent.ProxyRequestContext();
+        rc.setAuthorizer(authorizer);
+        event.setRequestContext(rc);
+        event.setPathParameters(new HashMap<>()); // No company_id
+
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         assertEquals(400, response.getStatusCode());
         assertTrue(response.getBody().contains("company_id not present"));
@@ -62,13 +76,20 @@ public class IncrementCompanyBoycottHandlerTest {
 
     @Test
     public void testInvalidIncrementValue() {
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        Map<String, String> claims = Map.of("sub", "11111111-2222-3333-4444-555555555555");
+        Map<String, Object> authorizer = new HashMap<>();
+        authorizer.put("claims", claims);
+
+        APIGatewayProxyRequestEvent.ProxyRequestContext rc = new APIGatewayProxyRequestEvent.ProxyRequestContext();
+        rc.setAuthorizer(authorizer);
+        event.setRequestContext(rc);
         Map<String, String> pathParams = new HashMap<>();
         pathParams.put("company_id", "test-company");
         pathParams.put("increment", "maybe"); // Invalid value
-        request.setPathParameters(pathParams);
+        event.setPathParameters(pathParams);
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         assertEquals(400, response.getStatusCode());
         assertTrue(response.getBody().contains("increment not acceptable value"));
@@ -76,16 +97,23 @@ public class IncrementCompanyBoycottHandlerTest {
 
     @Test
     public void testCompanyNotFound() {
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        Map<String, String> claims = Map.of("sub", "11111111-2222-3333-4444-555555555555");
+        Map<String, Object> authorizer = new HashMap<>();
+        authorizer.put("claims", claims);
+
+        APIGatewayProxyRequestEvent.ProxyRequestContext rc = new APIGatewayProxyRequestEvent.ProxyRequestContext();
+        rc.setAuthorizer(authorizer);
+        event.setRequestContext(rc);
         Map<String, String> pathParams = new HashMap<>();
         pathParams.put("company_id", "nonexistent-company");
         pathParams.put("increment", "true");
-        request.setPathParameters(pathParams);
+        event.setPathParameters(pathParams);
 
         when(dynamoDbClient.updateItem(any(UpdateItemRequest.class)))
                 .thenThrow(ConditionalCheckFailedException.builder().message("Not found").build());
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         assertEquals(500, response.getStatusCode());
         assertTrue(response.getBody().contains("Transaction failed"));
