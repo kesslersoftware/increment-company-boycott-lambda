@@ -116,6 +116,6 @@ public class IncrementCompanyBoycottHandlerTest {
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         assertEquals(500, response.getStatusCode());
-        assertTrue(response.getBody().contains("Transaction failed"));
+        assertTrue(response.getBody().contains("Unexpected server error"));
     }
 }

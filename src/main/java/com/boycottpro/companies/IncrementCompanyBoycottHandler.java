@@ -34,46 +34,51 @@ public class IncrementCompanyBoycottHandler implements RequestHandler<APIGateway
 
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
+        String sub = null;
         try {
-            String sub = JwtUtility.getSubFromRestEvent(event);
-            if (sub == null) return response(401, "Unauthorized");
+            sub = JwtUtility.getSubFromRestEvent(event);
+            if (sub == null) return response(401, Map.of("message", "Unauthorized"));
             Map<String, String> pathParams = event.getPathParameters();
             String companyId = (pathParams != null) ? pathParams.get("company_id") : null;
             String incrementStr = pathParams != null ? pathParams.get("increment") : null;
             if (companyId == null || companyId.isEmpty()) {
-                return response(400,
+                ResponseMessage message = new ResponseMessage(400,
                         "sorry, there was an error processing your request",
                         "company_id not present");
+                return response(400,message);
             }
             if (incrementStr == null || incrementStr.isEmpty()) {
-                return response(400,
+                ResponseMessage message = new ResponseMessage(400,
                         "sorry, there was an error processing your request",
                         "increment not present");
+                return response(400,message);
             }
             if (!(incrementStr.equals("true") || incrementStr.equals("false"))) {
-                return response(400,
+                ResponseMessage message = new ResponseMessage(400,
                         "sorry, there was an error processing your request",
                         "increment not acceptable value");
+                return response(400,message);
             }
             boolean increment = Boolean.parseBoolean(incrementStr);
             boolean updated = incrementCompanyRecord(companyId, increment);
-            String responseBody = objectMapper.writeValueAsString("company record updated = " +
+            return response(200,"company record updated = " +
                     updated);
-            return new APIGatewayProxyResponseEvent()
-                    .withStatusCode(200)
-                    .withHeaders(Map.of("Content-Type", "application/json"))
-                    .withBody(responseBody);
         } catch (Exception e) {
-            e.printStackTrace();
-            return response(500, "sorry, there was an error processing your request",
-                    "Transaction failed: " + e.getMessage());
+            System.out.println(e.getMessage() + " for user " + sub);
+            return response(500,Map.of("error", "Unexpected server error: " + e.getMessage()) );
         }
     }
-    private APIGatewayProxyResponseEvent response(int status, String body) {
+    private APIGatewayProxyResponseEvent response(int status, Object body) {
+        String responseBody = null;
+        try {
+            responseBody = objectMapper.writeValueAsString(body);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
         return new APIGatewayProxyResponseEvent()
                 .withStatusCode(status)
                 .withHeaders(Map.of("Content-Type", "application/json"))
-                .withBody(body);
+                .withBody(responseBody);
     }
     private boolean incrementCompanyRecord(String companyId, boolean increment) {
         try {
