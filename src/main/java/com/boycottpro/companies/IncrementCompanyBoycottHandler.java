@@ -7,6 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.boycottpro.models.ResponseMessage;
 import com.boycottpro.models.Users;
 import com.boycottpro.utilities.JwtUtility;
+import com.boycottpro.utilities.Logger;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -35,36 +36,46 @@ public class IncrementCompanyBoycottHandler implements RequestHandler<APIGateway
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
         String sub = null;
+        int lineNum = 39;
         try {
             sub = JwtUtility.getSubFromRestEvent(event);
-            if (sub == null) return response(401, Map.of("message", "Unauthorized"));
+            if (sub == null) {
+            Logger.error(45, sub, "user is Unauthorized");
+            return response(401, Map.of("message", "Unauthorized"));
+            }
+            lineNum = 46;
             Map<String, String> pathParams = event.getPathParameters();
             String companyId = (pathParams != null) ? pathParams.get("company_id") : null;
             String incrementStr = pathParams != null ? pathParams.get("increment") : null;
             if (companyId == null || companyId.isEmpty()) {
+                Logger.error(51, sub, "company_id not present");
                 ResponseMessage message = new ResponseMessage(400,
                         "sorry, there was an error processing your request",
                         "company_id not present");
                 return response(400,message);
             }
             if (incrementStr == null || incrementStr.isEmpty()) {
+                Logger.error(58, sub, "increment not present");
                 ResponseMessage message = new ResponseMessage(400,
                         "sorry, there was an error processing your request",
                         "increment not present");
                 return response(400,message);
             }
             if (!(incrementStr.equals("true") || incrementStr.equals("false"))) {
+                Logger.error(65, sub, "increment not acceptable value");
                 ResponseMessage message = new ResponseMessage(400,
                         "sorry, there was an error processing your request",
                         "increment not acceptable value");
                 return response(400,message);
             }
+            lineNum = 71;
             boolean increment = Boolean.parseBoolean(incrementStr);
             boolean updated = incrementCompanyRecord(companyId, increment);
+            lineNum = 74;
             return response(200,"company record updated = " +
                     updated);
         } catch (Exception e) {
-            System.out.println(e.getMessage() + " for user " + sub);
+            Logger.error(lineNum, sub, e.getMessage());
             return response(500,Map.of("error", "Unexpected server error: " + e.getMessage()) );
         }
     }
